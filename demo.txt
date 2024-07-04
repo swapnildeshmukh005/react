@@ -1,0 +1,430 @@
+App.js
+######
+
+
+function App() {
+ return (
+  <>
+   <BrowserRouter>
+    <Navbar />
+    <Routes>
+      {/*
+   	Add the routes as mentioned below:
+   	1. It should redirect to Exercises component for default URL i.e. http://localhost:3000/.
+   	2. It should load BookPT component for /book_pt/:exerciseType.
+   	3. It should load ShowBooking component for /show_booking/:exerciseType.
+   	4. It should redirect to Exercises component for any wrong URL e.g. http://localhost:3000/wrongpage.
+  	*/}
+ 	<Route path="/" element={<Exercises/>} />
+ 	<Route path="/book_pt/:exerciseType" element={<BookPT/>} />
+ 	<Route path="/show_booking/:exerciseType" element={<ShowBooking/>} />
+ 	<Route path="*" element={<Exercises/>} />
+    </Routes>
+   </BrowserRouter>
+  </>
+ );
+ }
+export default App;
+
+
+################################################################
+
+
+BookPT.js
+#########
+
+
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
+
+export default function BookPT() {
+ const params = useParams();
+
+ const [formData, setFormData] = useState({
+  exerciseType: params.exerciseType,
+  name: "",
+  contactNo: "",
+  startDate: "",
+ });
+
+ const [formErrorMessage, setFormErrorMessage] = useState({
+  name: "",
+  contactNo: "",
+  startDate: "",
+ });
+
+ const [formDatavalid, setFormDataValid] = useState({
+  name: false, //value given to ‘name’ field is invalid, if false
+  contactNo: false, //value given to ‘contactNo field is invalid, if false
+  startDate: false, //value given to ‘startDate field is invalid, if false
+  buttonActive: false, //the form button is disabled if set to false
+ });
+
+ const [successMessage, setSuccessMessage] = useState("");
+ const [errorMessage, setErrorMessage] = useState("");
+
+
+
+
+ /* Use the messages from the below messages object
+    to display all kinds of success, error and validation messages instead of hardcoding. */
+  
+  const messages = {
+   REQUIRED_VALIDATION: "Field is required",
+   NAME_VALIDATION: "Must be at least 3 characters long",
+   DATE_VALIDATION: "You cannot select today's date or a date in the past. Please choose a future date to begin your package.",
+   CONTACT_VALIDATION: "Cannot start with a number below 6 and must be 10 digits",
+   TRAINER_BOOKED_SUCCESS: "Personal trainer booked successfully",
+   TRAINER_BOOKED_ERROR: "Something went wrong",
+  };
+
+   const url = "http://localhost:4000/bookings";
+
+  /* To Be Implemented. */
+  /* This function will be invoked whenever the value provided to any of the input fields changes */
+  const handleChange = (event) => {
+   /*
+   1. use the name and value property from the event object.
+   2. set the corresponding formData state property to the received value.
+   3. invoke the validateField by passing event object's name and value as parameter.
+   */
+
+   const { name, value } = event.target;
+   setFormData((prevFormData) => ({ ...prevFormData, [name]: value }));
+   validateField(name, value);
+  };
+
+ /* To Be Modified. */
+ /* This method validates the input fields based on the mentioned conditions. */
+ const validateField = (fieldName, fieldvalue) => {
+  const newFormDataErrorMessages = { ...formErrorMessage };
+  const newFormDataValid = { ...formDatavalid };
+
+  /*
+    Common requirement for all the inputs as follows:
+    1. If input is valid then
+      a. set the associated error message as empty string.
+      b. set the associated formvalid value as true,
+    2. Otherwise set associated formValid value as false.
+  */
+  switch (fieldName) {
+   case "name":
+    const nameRegex = /^[A-Za-z][A-Za-z ]{3,29}$/;
+    /*
+     1. If the value of name is empty,
+        set the associated error message as REQUIRED_VALIDATION,
+     2. If the value contains less than 3 alphabets or greater than 29 alphabets or
+        if the value contains other than alphabet characters,
+        set the associated error message as NAME_VALIDATION.
+    */
+	if (fieldvalue === "") {
+	 newFormDataErrorMessages.name = messages.REQUIRED_VALIDATION;
+	 newFormDataValid.name = false;
+	} else if (!nameRegex.test(fieldvalue)) {
+	  newFormDataErrorMessages.name = messages.NAME_VALIDATION;
+	  newFormDataValid.name = false;
+	} else {
+	  newFormDataErrorMessages.name = "";
+	  newFormDataValid.name = true;
+	}
+	break;
+
+  	case "startDate":
+	  let today = new Date().setUTCHours(0, 0, 0, 0);
+	  let checkIn = new Date(fieldValue).setUTCHours(0, 0, 0, 0);
+	/*
+	  1. If startDate field is empty it should set the error message as REQUIRED_VALIDATION.
+	  2. If startDate field has past date or today's date,
+	     it should set the error message as DATE_VALIDATION.
+	*/
+	if (fieldvalue === "") {
+	    newFormDataErrorMessages.startDate = messages,REQUIRED_VALIDATION;
+	    newFormDataValid.startDate = false;
+	} else if (checkIn <= today) {
+	    newFormDataErrorMessages.startDate = messages.DATE_VALIDATION;
+	    newFormDataValid.startDate = false;
+	} else {
+	    newFormDataErrorMessages.startDate = "";
+	    newFormDataValid.startDate = true;
+	}
+	break;
+
+	case "contactNo":
+	/*
+	  1. If contactNo field is empty it should set the error message as REQUIRED_VALIDATION,
+	  2. If contactNo field has fieldvalues starting from a number less than 6 and
+	     the number of digits is less than 10,
+	     it should set the error message as CONTACT_VALIDATION.
+	     Hint: Use Regex pattern.
+	 */
+	 const contactNoRegex = /^[6-9][0-9]{9}$/;
+	 if (fieldvalue === "") {
+	    newFormDataErrorMessages.contactNo = messages.REQUIRED_VALIDATION;
+ 	    newFormDataValid.contactNo = false;
+	 } else if (!contactNoRegex.test(fieldvalue)) {
+	    newFormDataErrorMessages.contactNo = messages.CONTACT_VALIDATION;
+	    newFormDataValid.contactNo = false;
+	 } else {
+	    newFormDataErrorMessages.contactNo = "";
+	    newFormDataValid.contactNo = true;
+	 }
+	 break;
+
+	default:
+	 break;
+     }
+
+
+     /* 
+	Set isButtonAtive to true when the associated formValid property of all three input fields are true.
+     */
+
+	if(newFormDataValid.name && newFormDataValid.ontactNo && newFormDataValid.startDate) {
+	   newFormDataValid.buttonActive = true;
+	} else {
+	   newFormDataValid.buttonActive = false; 
+	}
+	setFormErrorMessage(newFormDataErrorMessage);
+	setFormDataValid(newFormDataValid);
+     };
+
+
+   /* To Be Implemented. */
+   /* This function will save the booking form data in the backend. */
+   const bookPT = async (event) => {
+	/*
+	  1. Should prevent default behaviour on form submission,
+	  2. Should make a POST request to http://localhost:4000/bookings with formData
+	     as the request body.
+	  3. In case of success, it should set successMessage as TRAINER_BOOKED_SUCCESS.
+	  4. In case of error, it should set errorMessage as TRAINER_BOOKED_ERROR.
+	*/
+	event.preventDefault();
+	try {
+	  const response = await axios.post(url, formData);
+	  setSuccessMessage (messages.TRAINER_BOOKED_SUCCESS);
+	  setErrorMessage("");
+	} catch (error) {
+	  setErrorMessage(messages.TRAINER_BOOKED_ERROR);
+	  setSuccessMessage(""); I
+	}
+
+
+
+  /* To be modified */
+  /* The below code designs registration form. */
+
+  return (
+   <>
+     <div className="container-fluid'>
+      <div className="row">
+       <div className="col-md-6 offset-md-3">
+         <div
+	   className="card mt-5
+	   style={{ backgroundColor: "rgba(255, 255, 255, 0.75)"}}
+	  >
+	    <div className="card-header text text-center">
+ 	       <h3 id="card-title" data-testid="form-title">
+ 	         Book Your Trainer for: {params.exerciseType}
+		 {/* Display selected Exercise Type */ }
+               </h3>
+	      </div>
+              <div className="card-body">
+		{/*
+		  The common requirements for each input field for the following form are mentioned below:
+		  1.On form submission, bookPT method should be invoked.
+		  2.Bind all form fields to their corresponding properties in the formData state.
+		  3.Give all form fields a name attribute that matches their formData state property.
+		  4.Set proper type attributes and bootstrap classes for all form fields.
+		  5.Invoke the handleChange() method on every input field value change.
+   		  6.contactNo field should be of type number.
+		  7.startDate field should be of type date.
+		  8.The "Book PT" button should have bootstrap classes "btn btn-block btn-dark mt-3".
+	          9.Disable the button until the buttonActive state property is true.
+		  10. Show error message and success message on form submission as appropriate, but not both at the same time.
+		*/}
+
+		<form data-testid="bookingForm" onSubmit={bookPT}>
+		 <div className="form-group" id="exerciseType">
+		  <label
+ 		     htmlFor="exerciseType"
+		     data-testid="labelExerciseType"
+		  >
+			Personal Trainer For
+		  </label> 
+		  {/* input1 - Do not change.*/}
+		   <input
+			id="exerciseType"
+			name="exerciseType"
+			className="form-control"
+			value={formData.exerciseType}
+ 			type="text"
+			disabled
+			data-testid="inputExerciseType"
+                    />
+                 </div>
+                <div className="form-group" id ="name">
+		<lable htmlFor="name" data-testid="lablename">
+		   Name
+		</lable>
+		{/* input2 */}
+		  <input
+			id="name"
+			name="text"
+			className="form-control"
+			name="name"
+			value={formData.name}
+ 			onChange={handleChange}
+			data-testid="input-name"
+                    />
+
+	 	    <div id="nameError" data-testid="errorName" className="badge text-bg-danger">
+		      {/* Show name error message and style it with class "badge text-bg-danger". */}
+		      {formErrorMessage.name}
+	            </div>
+                </div>
+
+    	<div className ="form-group" id="contactNo">
+         <lable htmlFor="contactNo" data-testid="lableContactNo">
+	   Contact No
+	 </lable>
+	   {"/* input3 */"}
+	 <input
+	   id="contactNo"
+	   name="contactNo"
+	   className="form-control"
+	   name="contactNo"
+	   value={formData.contactNo}
+ 	   onChange={handleChange}
+	   data-testid="inputContactNo"
+	   type="number"
+	  />
+	  <div id="contactNoError" data-testid="errorContactNo" className="badge text-bg-danger">
+            {/* Show Contact number error message and style it with class "badge text-bg-danger." */}
+	    {formErrorMessage.contactNo}
+	  </div>
+         </div>
+
+<div className ="form-group" id="contactNo">
+         <lable htmlFor="contactNo" data-testid="lableContactNo">
+	   Contact No
+	 </lable>
+	   {"/* input4 */"}
+	 <input
+	   id="startDate"
+	   name="startDate"
+	   className="form-control"
+	   name="startDate"
+	   value={formData.startDate}
+ 	   onChange={handleChange}
+	   data-testid="inputDate"
+	   type="date"
+	  />
+	  <div id="startDateError" data-testid="errorDate" className="badge text-bg-danger">
+            {/* Show date error message and style it with class "badge text-bg-danger." */}
+	    {formErrorMessage.startDate}
+	  </div>
+         </div>
+	
+	<div className="form-group" id = "btnForm">
+         {/* button*/ }
+	    <button id="bookPTBtn data-testid="bookPTButton"
+	      className="btn btn-block btn-dark mt-3"
+	      disabled={!formDataValid.buttonActive}>
+              Book PT
+            </button>
+	</div>
+       </form>
+
+        <div id="successMessage" data-testid="successMessageForm" className="badge text-bg-success">
+ 	{/* Display success message here and style it with class "badge text-bg-success".*/}
+	{successMessage}
+	</div>
+<div id="errorMessage" data-testid="errorMessageForm" className="badge text-bg-danger">
+ 	{/* Display success message here and style it with class "badge text-bg-danger".*/}
+	{errorMessage}
+	</div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </>
+ );
+}
+
+
+
+####################################################
+
+Exerise.js
+##########
+
+
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+export default function Exercises(){
+const [exercisesArray, setExercisesArray] = useState([]);
+const [errorMessage, setErrorMessage] = useState("");
+const navigate = useNavigate();
+
+const messages = {
+NETWORK_ERROR: "Network Error",
+};
+const url = "http://localhost:4000/exercises”;
+/* To Be Implemented. */
+/* This method fetches all the exercises from url i.e. http://localhost:4000/exercises. */
+const getAllExercises = async () => {
+
+/*
+1. Send an AXIOS GET request to the url and handle the success and error cases appropriately.
+2. In case of success, assign received response's data to exercisesArray state.
+3. In case of error, set the errorMessage state as NETWORK_ERROR from the messages object.
+*/
+	try {
+	  const response = await axios.get(url);
+	  setExercisesArray(response.data);
+	} catch (error) {
+	  setErrorMessage(messages .NETWORK_ERROR) ;
+	}
+};
+
+/* Impleted No hange required */
+useEffect(() => {
+	getAllExercises();
+), []);
+
+/* To Be Modified */
+/* This method navigated to BookPT component. */
+const handleClickBooking = (exercise) {
+	/*
+	1. Navigate to BookPT component with route params as "exerciseType" of the 
+	selected excercise.
+	Note:Use the navigate method.
+	*/
+	navigate(`/book-pt/${exercise.exerciseType}`);
+};
+
+/* To Be Modified */
+/* This method navigated to ShowBooking component. */
+const handleClickShowBooking = (exercise) => {
+	/*
+	1. Navigate to ShowBooking component with route params as "exerciseType" of the 
+	selected excercise.
+	*/
+	navigate(`/show-booking/${exercise.exerciseType}`);
+};
+
+/* To Be Modified */
+/* This method iterates over the exercisesArray to display all exercises cards. */
+const displayExercises = () => {
+	let counter = 1000;
+	/*
+	Start iteration over the exercisesArray state below the end this comment block.
+	*/
+
+
+
